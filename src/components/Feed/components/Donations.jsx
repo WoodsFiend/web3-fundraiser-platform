@@ -3,36 +3,36 @@ import { useMoralisDapp } from "providers/MoralisDappProvider/MoralisDappProvide
 import { useMoralis, useMoralisQuery } from "react-moralis";
 
 
-const Votes = ({postId}) => {
+const Donations = ({fundId}) => {
     const {Moralis} = useMoralis();
-    const [postVotes, setPostVotes] = useState("0");
+    const [donations, setDonations] = useState("0");
     const { contractABI, contractAddress} = useMoralisDapp();
     const contractABIJson = JSON.parse(contractABI)
     
-    const { data } = useMoralisQuery("Votes", (query) => query.equalTo("postId", postId), [], { live: true });
+    const { data } = useMoralisQuery("Donations", (query) => query.equalTo("fundId", fundId), [], { live: true });
     const options = {
         contractAddress: contractAddress,
-        functionName: "getPost",
+        functionName: "getFund",
         abi: contractABIJson,
         params: {
-          _postId: postId
+          _fundId: fundId
         }
       };
     
     useEffect(() => {
-        async function getPostVotes() {
+        async function getDonations() {
             await Moralis.enableWeb3;
             const result = await Moralis.executeFunction(options);
-            setPostVotes(result[3]);
+            setDonations(result[6] / 1e18);
         }
-        getPostVotes();
+        getDonations();
     }, [data]);
     
     return (
         <>
-          {postVotes}  
+          {donations}  
         </>
     )
 }
 
-export default Votes
+export default Donations

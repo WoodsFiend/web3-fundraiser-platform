@@ -1,21 +1,21 @@
 import {useMoralisDapp} from "providers/MoralisDappProvider/MoralisDappProvider"
 import {useState} from "react"
-import Posts from "./components/Posts"
+import Funds from "./components/Funds"
 import Reputation from "components/Reputation"
 
 import {Avatar, Button }from "antd" 
 import glStyles from "components/gstyles"
 import Blockie from "components/Blockie"
-import AddPost from "./components/AddPost"
+import CreateFund from "./components/CreateFund"
 
 const Feed = () => {
     const {selectedCategory} = useMoralisDapp();
-    const [showAddPost, setShowAddPost] = useState(false)
+    const [showAddFund, setShowAddFund] = useState(false)
 
     let result = null;
     
-    function toogleShowAddPost(){
-        setShowAddPost(!showAddPost);
+    function toogleShowAddFund(){
+        setShowAddFund(!showAddFund);
     }
 
     if (selectedCategory["category"] === "default") {
@@ -39,12 +39,12 @@ const Feed = () => {
             >
                 <Avatar src={<Blockie currentWallet />} />
                 <h4> Your Reputation in {selectedCategory["category"]} is <Reputation/> </h4>
-                <Button shape="round" onClick={toogleShowAddPost}>
-                    Post
+                <Button shape="round" onClick={toogleShowAddFund}>
+                    Fundraise
                 </Button>
             </div>
-            {showAddPost ? <AddPost/>:""}
-            <Posts/>
+            {showAddFund ? <CreateFund/>:""}
+            <Funds/>
         </div>    
         )
     }

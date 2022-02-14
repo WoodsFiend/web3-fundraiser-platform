@@ -4,25 +4,27 @@ import {useWeb3ExecuteFunction} from "react-moralis";
 import {useState} from "react";
 import {message} from "antd";
 
-const AddPost = () => {
+const CreateFund = () => {
     const {contractABI, contractAddress, selectedCategory} = useMoralisDapp();
     const contractABIJson = JSON.parse(contractABI);
     const ipfsProcessor = useMoralisFile();
     const contractProcessor = useWeb3ExecuteFunction();
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
-    
-    async function addPost(post) {
+    const [receivers, setReceivers] = useState("");
+
+    async function createFund(post) {
         const contentUri = await processContent(post); 
         const categoryId = selectedCategory["categoryId"];
         const options = {
             contractAddress: contractAddress,
-            functionName: "createPost",
+            functionName: "createFund",
             abi: contractABIJson,
             params: {
                 _parentId: "0x91",
                 _contentUri: contentUri,
-                _categoryId: categoryId
+                _categoryId: categoryId,
+                _receivers: receivers.split(" ")
             },
             }
         await contractProcessor.fetch({params:options,
@@ -41,21 +43,42 @@ const AddPost = () => {
     }
 
     const validateForm = () => {
-        let result = !title || !content ? false: true;
+        let result = !title || !content || !receivers ? false: true;
+        if(receivers.includes(",")){
+            result = false;
+        }
         return result
+    }
+
+    const validateReceivers = () => {
+        let spChars = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]+/;
+        if(spChars.test(receivers)){
+            return false;
+        }
+        let theReceivers = receivers.split(" ");
+        theReceivers.forEach(receiver => {
+            if(spChars.test(receiver)){
+                return false;
+            }
+        });
+        return true;
     }
 
    const clearForm = () =>{
         setTitle('');
         setContent('');
+        setReceivers('');
     }
     
     function onSubmit(e){
         e.preventDefault();
         if(!validateForm()){
-            return message.error("Remember to add the title and the content of your post")
+            return message.error("Remember to add the title, content, and receivers of your fundraiser.");
         }
-        addPost({title, content})
+        if(!validateReceivers()){
+            return message.error("Receiver addresses must be separated by a space.");
+        }
+        createFund({title, content})
         clearForm();
     }
     
@@ -75,10 +98,18 @@ const AddPost = () => {
                 <textarea
                 type='text'
                 className="mb-2 form-control"
-                placeholder="Post away"
+                placeholder="Fundraiser Information"
                 rows="5"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
+                />
+                <textarea
+                type='text'
+                className="mb-2 form-control"
+                placeholder="Fundraiser Receivers (addresses separated by spaces)"
+                rows="5"
+                value={receivers}
+                onChange={(e) => setReceivers(e.target.value)}
                 />
             </div>
             <button type="submit" className="btn btn-dark ">Submit</button>
@@ -87,4 +118,4 @@ const AddPost = () => {
     )
 }
 
-export default AddPost
+export default CreateFund
