@@ -3,13 +3,13 @@ import { useMoralisQuery, useMoralis, } from "react-moralis";
 import { useState } from "react";
 import { useEffect } from "react";
 
-const Reputation = () => {
+const Reputation = ({address}) => {
     const {Moralis} = useMoralis();
     const { walletAddress, contractABI, contractAddress, selectedCategory} = useMoralisDapp();
     const [reputationValue, setReputation] = useState(0);
     const contractABIJson = JSON.parse(contractABI)
     
-    const { data: votes } = useMoralisQuery("Votes", (query) => query.equalTo("postOwner", walletAddress), [], {
+    const { data: donations } = useMoralisQuery("Donations", (query) => query.equalTo("fundOwner", address), [], {
         live: true,
       });
     
@@ -20,7 +20,7 @@ const Reputation = () => {
         functionName: "getReputation",
         abi: contractABIJson,
         params: {
-            _address: walletAddress,
+            _address: address,
             _categoryID:categoryId
         }
     };
@@ -34,7 +34,7 @@ const Reputation = () => {
       }
     
         getReputation();
-      }, [votes, walletAddress, categoryId]);
+      }, [donations, walletAddress, categoryId]);
 
     return (
         <>{reputationValue}</>

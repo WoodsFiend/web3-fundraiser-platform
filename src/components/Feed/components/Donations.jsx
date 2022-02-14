@@ -9,7 +9,9 @@ const Donations = ({fundId}) => {
     const { contractABI, contractAddress} = useMoralisDapp();
     const contractABIJson = JSON.parse(contractABI)
     
-    const { data } = useMoralisQuery("Donations", (query) => query.equalTo("fundId", fundId), [], { live: true });
+    const { donated } = useMoralisQuery("Donations", (query) => query.equalTo("fundId", fundId), [], { live: true });
+    const { retracted } = useMoralisQuery("RetractedDonations", (query) => query.equalTo("fundId", fundId), [], { live: true });
+
     const options = {
         contractAddress: contractAddress,
         functionName: "getFund",
@@ -23,10 +25,10 @@ const Donations = ({fundId}) => {
         async function getDonations() {
             await Moralis.enableWeb3;
             const result = await Moralis.executeFunction(options);
-            setDonations(result[6] / 1e18);
+            setDonations(" " + (result[6] / 1e18) + "  ETH");
         }
         getDonations();
-    }, [data]);
+    }, [donated, retracted]);
     
     return (
         <>

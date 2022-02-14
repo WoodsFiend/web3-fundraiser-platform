@@ -9,7 +9,7 @@ import Blockie from "components/Blockie"
 import CreateFund from "./components/CreateFund"
 
 const Feed = () => {
-    const {selectedCategory} = useMoralisDapp();
+    const {walletAddress, selectedCategory} = useMoralisDapp();
     const [showAddFund, setShowAddFund] = useState(false)
 
     let result = null;
@@ -38,7 +38,7 @@ const Feed = () => {
                 }}
             >
                 <Avatar src={<Blockie currentWallet />} />
-                <h4> Your Reputation in {selectedCategory["category"]} is <Reputation/> </h4>
+                <h4> Your Reputation in {selectedCategory["category"]} is <Reputation address={walletAddress}/> </h4>
                 <Button shape="round" onClick={toogleShowAddFund}>
                     Fundraise
                 </Button>

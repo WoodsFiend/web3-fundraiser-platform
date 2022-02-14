@@ -11,6 +11,7 @@ const Funds = () => {
         [selectedCategory],
         { live: true }
       );
+    //Add search filters so specific fundraisers can be found
 
     const fetchedFunds = JSON.parse(JSON.stringify(queryFund.data, ["fundId", "contentId", "fundOwner", "receivers"])).reverse();
     const haveFunds = fetchedFunds.length > 0 ? true : false;

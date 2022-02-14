@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract FundUs is Ownable {
 
     event FundCreated (bytes32 indexed fundId, address indexed fundOwner, bytes32 indexed parentId, bytes32 contentId, bytes32 categoryId, address[] receivers);
+    event FundEnded (bytes32 indexed fundId, address indexed fundOwner, bytes32 indexed parentId, bytes32 contentId, bytes32 categoryId);
+
     event ContentAdded (bytes32 indexed contentId, string contentUri);
     event CategoryCreated (bytes32 indexed categoryId, string category);
     event Donated (uint256 amount, bytes32 indexed fundId, address indexed fundOwner, address indexed Donater, uint80 reputationfundOwner, uint80 reputationDonater, bool up, uint8 reputationAmount);
@@ -18,6 +20,7 @@ contract FundUs is Ownable {
         bytes32 categoryId;
         bool fundActive;
         mapping (address => uint256) donatedAmounts;
+        mapping (address => uint8) repGiven;
         mapping (address => bool) receivers;
         uint256 totalReceivers;
         uint256 donations;
@@ -31,7 +34,7 @@ contract FundUs is Ownable {
     uint256 ownerRewards;
     
     function createFund(bytes32 _parentId, string calldata _contentUri, bytes32 _categoryId, address[] calldata _receivers) external {
-        require(_receivers.lenght > 0, "The fund must have atleast one receiver");
+        require(_receivers.length > 0, "The fund must have atleast one receiver");
         address _owner = msg.sender;
         bytes32 _contentId = keccak256(abi.encode(_contentUri));
         bytes32 _fundId = keccak256(abi.encodePacked(_owner,_parentId, _contentId));
@@ -55,18 +58,20 @@ contract FundUs is Ownable {
 
     function donate(bytes32 _fundId, uint8 _reputationAdded) external payable {
         require(FundRegistry[_fundId].fundActive, "This fund is not active");
+        require(msg.value > 0, "Cannot donate nothing to the fundraiser");
         address _Donater = msg.sender;
         bytes32 _category = FundRegistry[_fundId].categoryId;
         address _contributor = FundRegistry[_fundId].fundOwner;
         require (FundRegistry[_fundId].fundOwner != _Donater, "you cannot Donate to your own Funds");
         require (validateReputationChange(_Donater,_category,_reputationAdded)==true, "This address cannot add this amount of reputation points");
         reputationRegistry[_contributor][_category] += _reputationAdded;
+        FundRegistry[_fundId].repGiven[_Donater] += _reputationAdded;
         FundRegistry[_fundId].donatedAmounts[msg.sender] += msg.value;
         FundRegistry[_fundId].donations += msg.value;
         emit Donated(msg.value, _fundId, _contributor, _Donater, reputationRegistry[_contributor][_category], reputationRegistry[_Donater][_category], true, _reputationAdded);
     }
 
-    function retractDonation(address payable _receiver, bytes32 _fundId, uint8 _reputationTaken) external {
+    function retractDonation(address payable _receiver, bytes32 _fundId) external {
         require(FundRegistry[_fundId].fundActive, "This fund is not active");
         require(_receiver != address(0), "Cannot recover ETH to the 0 address");
         require(_receiver == msg.sender, "Cannot recover ETH to a different address");
@@ -74,9 +79,10 @@ contract FundUs is Ownable {
         address _Donater = msg.sender;
         bytes32 _category = FundRegistry[_fundId].categoryId;
         address _contributor = FundRegistry[_fundId].fundOwner;
-        require (validateReputationChange(_Donater,_category,_reputationTaken)==true, "This address cannot take this amount of reputation points");
-        reputationRegistry[_contributor][_category] >= _reputationTaken ? reputationRegistry[_contributor][_category] -= _reputationTaken: reputationRegistry[_contributor][_category] =0;   
-        
+        uint8 _reputationTaken = FundRegistry[_fundId].repGiven[_receiver];
+        reputationRegistry[_contributor][_category] -= _reputationTaken;   
+        FundRegistry[_fundId].repGiven[_receiver] = 0;
+
         uint256 amount = FundRegistry[_fundId].donatedAmounts[_receiver];
         FundRegistry[_fundId].donatedAmounts[_receiver] = 0;
         FundRegistry[_fundId].donations -= amount;
@@ -132,6 +138,12 @@ contract FundUs is Ownable {
         ownerRewards += FundRegistry[_fundId].donations / 50;
         FundRegistry[_fundId].donations = (FundRegistry[_fundId].donations / 50) * 49;
         FundRegistry[_fundId].fundActive = false;
+        address _owner = FundRegistry[_fundId].fundOwner;
+        bytes32 _parentId = FundRegistry[_fundId].parentFund;
+        bytes32 _contentId = FundRegistry[_fundId].contentId ;
+        bytes32 _categoryId = FundRegistry[_fundId].categoryId;
+        emit FundEnded (_fundId, _owner,_parentId,_contentId,_categoryId);
+
     }
 
     function withdrawFunding(bytes32 _fundId, address payable _receiver) external {

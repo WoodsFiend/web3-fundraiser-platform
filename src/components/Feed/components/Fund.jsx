@@ -1,5 +1,5 @@
 import { useMoralisDapp } from "providers/MoralisDappProvider/MoralisDappProvider";
-import { useMoralisQuery, useWeb3ExecuteFunction } from "react-moralis";
+import { useMoralis, useMoralisQuery, useWeb3ExecuteFunction } from "react-moralis";
 import { useEffect, useState, createElement } from "react";
 import { Comment, Tooltip, Avatar, message, Divider } from "antd";
 import Text from "antd/lib/typography/Text";
@@ -7,8 +7,10 @@ import Blockie from "components/Blockie";
 import glStyles from "components/gstyles";
 import Donations from "./Donations"
 import Receivers from "./Receivers";
+import Reputation from "components/Reputation";
 
 const Fund = ({fund}) => {
+    const {Moralis} = useMoralis();
     const { contentId, fundId, fundOwner, receivers } = fund;
     const [fundContent, setPosContent] = useState({ title: "default", content: "default" });
     const { data } = useMoralisQuery("Contents", (query) => query.equalTo("contentId", contentId));
@@ -17,7 +19,7 @@ const Fund = ({fund}) => {
         live: true,
     });
     
-    const { walletAddress, contractABI, contractAddress} = useMoralisDapp();
+    const { walletAddress, contractABI, contractAddress, selectedCategory} = useMoralisDapp();
     const contractABIJson = JSON.parse(contractABI);
     const contractProcessor = useWeb3ExecuteFunction();
     const [donationAmount, setDonation] = useState("");
@@ -65,7 +67,7 @@ const Fund = ({fund}) => {
             contractAddress: contractAddress,
             functionName: "donate",
             abi: contractABIJson,
-            value: amount * 1e18,
+            msgValue: Moralis.Units.ETH(amount),
             params: {
               _fundId: fund["fundId"],
               _reputationAdded: 1,
@@ -96,19 +98,22 @@ const Fund = ({fund}) => {
     }
 
     async function withrawFunding(){
-        if (walletAddress.toLowerCase() !== fundOwner.toLowerCase()) return message.error("Only the fund owner can end the fundraiser.");
         const options = {
             contractAddress: contractAddress,
             functionName: "withdrawFunding",
             abi: contractABIJson,
             params: {
               _fundId: fund["fundId"],
-              _receiver: walletAddress
+              //Add _ with new contract
+              receiver: walletAddress
             },
           };
           await contractProcessor.fetch({
             params: options,
-            onSuccess: () => console.log("success"),
+            onSuccess: () => {
+                console.log("success");
+                clearForm();
+            },
             onError: (error) => console.error(error),
           });
     }
@@ -135,6 +140,10 @@ const Fund = ({fund}) => {
         let result = !donationAmount ? false: true;
         return result
     }
+    const validateAmount = () => {
+        let result = donationAmount > 0 ? true: false;
+        return result
+    }
 
    const clearForm = () =>{
         setDonation('');
@@ -143,70 +152,100 @@ const Fund = ({fund}) => {
     function onSubmit(e){
         e.preventDefault();
         if(!validateForm()){
-            return message.error("Remember to add the title and the content of your post")
+            return message.error("Remember to add the title, the content, and the receivers of your fundraisers")
+        }
+        if(!validateAmount()){
+            return message.error("You cannot donate nothing to the fundraiser.")
         }
         Donate(donationAmount);
-        clearForm();
+        //clearForm();
     }
     
+    const donateForm = () => {
+        //should not display if the fund has ended
+            return (
+            <Tooltip title="Donate to the fundraiser">
+                <span style={{ fontSize: "15px", display: "flex", alignItems: "center" }}>      
+                <form onSubmit={onSubmit}>
+                    <div className ="row">
+                        <div className="form-group">
+                            <input
+                            type="number"
+                            step="0.01"
+                            className="mb-2 mt-2 form-control"
+                            placeholder="Donation Amount (ETH)"
+                            value={donationAmount}
+                            onChange={(e) => setDonation(e.target.value)}
+                            />
+                        </div>
+                        <button type="submit" className="btn btn-dark ">Donate</button>
+                    </div>
+                </form>
+                </span>
+            </Tooltip>
+            );
+    }
+
+    const retractDonationsButton = () => {
+        //should not display if the fund has ended
+            return (
+                <Tooltip title="Retract all donations given">
+                    <span style={{ fontSize: "15px", display: "list-item", alignItems: "center", marginLeft:"320px", marginTop:"20px" }}>
+                        {/* This should display the total fundraising given by this user*/}  
+                        <button className="btn btn-dark " onClick={() => RetractDonation()}>Retract Donations</button>
+                    </span>
+                </Tooltip>
+            );
+    }
     const fundOwnerCapabilites = () => {
+        //should not display if the fund has ended
         if(walletAddress === fundOwner){
             return (
-                <span style={{marginTop:"0px", marginLeft:"-12px", float:"left" }}>
-                    <button className="btn btn-dark " style={{float:"right", }} onClick={() => endFundraiser()}>End Fundraiser</button>
-                </span>
-            )
+                <Tooltip title="End the fundraiser and allow receivers to start withdrawing.">
+                    <span style={{marginTop:"0px", marginLeft:"-12px", float:"left" }}>
+                        <button className="btn btn-dark " style={{float:"right", marginTop:"10px"}} onClick={() => endFundraiser()}>End Fundraiser</button>
+                    </span>
+                </Tooltip>
+            );
         }
         else return null;
     }
 
     const receiverCapabilites = () => {
+        //should not display if the fund has ended
         if(receivers.find(r => r.toLowerCase() === walletAddress.toLowerCase())){
             return (
-                <button className="btn btn-dark " style={{float:"right"}} onClick={() => withrawFunding()}>Withdraw Donated Funds</button>
-            )
+                <Tooltip title="Withdraw the donations given to you.">
+                    <button className="btn btn-dark " style={{float:"right", marginTop:"10px"}} onClick={() => withrawFunding()}>Withdraw Donated Funds</button>
+                </Tooltip>
+            );
         }
         else return null;
     }
 
     const actions = [
-    <Tooltip key="comment-basic-like" title="Donate to the fundraiser">
+    <Tooltip title="The amount raised so far for the fundraiser.">
+        <br></br>
+        <span style={{ fontSize: "20px", display:"flex", width: "100%", float:"left", marginRight:"100px" }}> 
+            Total Donations:
+            <Donations fundId={fundId}/>
+        </span>
+    </Tooltip>,
+    <Tooltip title="The addresses who will receive the donations when the fundraiser is complete.">
+        <span style={{ fontSize: "12px" }}> 
             Fundraiser Receivers:
-                <span style={{ fontSize: "15px" }}> <Receivers fundId={fundId}/></span>
-            <br></br>
-            Total Donations (ETH):
-                <span style={{ fontSize: "15px" }}> <Donations fundId={fundId}/></span>
-        <span style={{ fontSize: "15px", display: "flex", alignItems: "center" }}>
-
-        {/* Input field */}  
-        <form onSubmit={onSubmit}>
-            <div className ="row">
-                <div className="form-group">
-                    <input
-                    type="number"
-                    step="0.01"
-                    className="mb-2 mt-2 form-control"
-                    placeholder="Donation Amount (ETH)"
-                    value={donationAmount}
-                    onChange={(e) => setDonation(e.target.value)}
-                    />
-                </div>
-                <button type="submit" className="btn btn-dark ">Donate</button>
-            </div>
-        </form>
+            <Receivers fundId={fundId}/>
         </span>
     </Tooltip>,
-    <Tooltip key="comment-basic-dislike" title="Retract all donations given">
-        <span style={{ fontSize: "15px", marginRight: "250px", marginTop:"-170px", width: "100%", float:"left" }}>
-            {/* This should display the total fundraising given by this user*/}  
-            <button className="btn btn-dark " style={{float:"right"}} onClick={() => RetractDonation()}>Retract Donations</button>
-        </span>
-    </Tooltip>,
+    donateForm(),
+    retractDonationsButton(),
     fundOwnerCapabilites(),
     receiverCapabilites()
     ];  
 
     const loading = "";
+    
+    //Add a copy direct link to search a each fundraiser for sharing
 
     const result = (
         <Comment
@@ -216,6 +255,13 @@ const Fund = ({fund}) => {
         avatar={<Avatar src={<Blockie address={fund["fundOwner"]} scale={4} />}></Avatar>}
         content={
             <>
+            <Text strong style={{ fontSize: "12px", color: "#333" }}>
+                {"The Organizers Reputation in "} {selectedCategory["category"]} {" is "}
+                <Reputation address={fund["fundOwner"]}></Reputation>
+                <br></br>
+                <br></br>
+
+            </Text>
             <Text strong style={{ fontSize: "20px", color: "#333" }}>
                 {fundContent["title"]}
             </Text>
