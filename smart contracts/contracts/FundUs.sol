@@ -56,19 +56,18 @@ contract FundUs is Ownable {
         emit FundCreated (_fundId, _owner,_parentId,_contentId,_categoryId, _receivers);
     }
 
-    function donate(bytes32 _fundId, uint8 _reputationAdded) external payable {
+    function donate(bytes32 _fundId) external payable {
         require(FundRegistry[_fundId].fundActive, "This fund is not active");
         require(msg.value > 0, "Cannot donate nothing to the fundraiser");
         address _Donater = msg.sender;
         bytes32 _category = FundRegistry[_fundId].categoryId;
         address _contributor = FundRegistry[_fundId].fundOwner;
         require (FundRegistry[_fundId].fundOwner != _Donater, "you cannot Donate to your own Funds");
-        require (validateReputationChange(_Donater,_category,_reputationAdded)==true, "This address cannot add this amount of reputation points");
-        reputationRegistry[_contributor][_category] += _reputationAdded;
-        FundRegistry[_fundId].repGiven[_Donater] += _reputationAdded;
+        reputationRegistry[_contributor][_category] += 1;
+        FundRegistry[_fundId].repGiven[_Donater] += 1;
         FundRegistry[_fundId].donatedAmounts[msg.sender] += msg.value;
         FundRegistry[_fundId].donations += msg.value;
-        emit Donated(msg.value, _fundId, _contributor, _Donater, reputationRegistry[_contributor][_category], reputationRegistry[_Donater][_category], true, _reputationAdded);
+        emit Donated(msg.value, _fundId, _contributor, _Donater, reputationRegistry[_contributor][_category], reputationRegistry[_Donater][_category], true, 1);
     }
 
     function retractDonation(address payable _receiver, bytes32 _fundId) external {
@@ -90,16 +89,6 @@ contract FundUs is Ownable {
         _receiver.transfer(amount);
 
         emit RetractedDonation(amount, _fundId, _contributor, _Donater, reputationRegistry[_contributor][_category], reputationRegistry[_Donater][_category], false, _reputationTaken);
-    }
-
-    function validateReputationChange(address _sender, bytes32 _categoryId, uint8 _reputationAdded) internal view returns (bool _result){
-        uint80 _reputation = reputationRegistry[_sender][_categoryId];
-        if (_reputation < 2 ) {
-            _reputationAdded == 1 ? _result = true: _result = false;
-        }
-        else {
-            2**_reputationAdded <= _reputation ? _result = true: _result = false;
-        }
     }
 
     function addCategory(string calldata _category) external {

@@ -140,6 +140,43 @@
         "inputs": [
             {
                 "indexed": true,
+                "internalType": "bytes32",
+                "name": "fundId",
+                "type": "bytes32"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "fundOwner",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "bytes32",
+                "name": "parentId",
+                "type": "bytes32"
+            },
+            {
+                "indexed": false,
+                "internalType": "bytes32",
+                "name": "contentId",
+                "type": "bytes32"
+            },
+            {
+                "indexed": false,
+                "internalType": "bytes32",
+                "name": "categoryId",
+                "type": "bytes32"
+            }
+        ],
+        "name": "FundEnded",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
                 "internalType": "address",
                 "name": "previousOwner",
                 "type": "address"
@@ -152,56 +189,6 @@
             }
         ],
         "name": "OwnershipTransferred",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "bytes32",
-                "name": "fundId",
-                "type": "bytes32"
-            },
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "fundOwner",
-                "type": "address"
-            },
-            {
-                "indexed": false,
-                "internalType": "address[]",
-                "name": "receivers",
-                "type": "address[]"
-            }
-        ],
-        "name": "ReceiversAdded",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "bytes32",
-                "name": "fundId",
-                "type": "bytes32"
-            },
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "fundOwner",
-                "type": "address"
-            },
-            {
-                "indexed": false,
-                "internalType": "address[]",
-                "name": "receivers",
-                "type": "address[]"
-            }
-        ],
-        "name": "ReceiversRemoved",
         "type": "event"
     },
     {
@@ -276,24 +263,6 @@
         "inputs": [
             {
                 "internalType": "bytes32",
-                "name": "_fundId",
-                "type": "bytes32"
-            },
-            {
-                "internalType": "address[]",
-                "name": "_receivers",
-                "type": "address[]"
-            }
-        ],
-        "name": "addReceivers",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "bytes32",
                 "name": "_parentId",
                 "type": "bytes32"
             },
@@ -324,11 +293,6 @@
                 "internalType": "bytes32",
                 "name": "_fundId",
                 "type": "bytes32"
-            },
-            {
-                "internalType": "uint8",
-                "name": "_reputationAdded",
-                "type": "uint8"
             }
         ],
         "name": "donate",
@@ -474,24 +438,6 @@
         "type": "function"
     },
     {
-        "inputs": [
-            {
-                "internalType": "bytes32",
-                "name": "_fundId",
-                "type": "bytes32"
-            },
-            {
-                "internalType": "address[]",
-                "name": "_receivers",
-                "type": "address[]"
-            }
-        ],
-        "name": "removeReceivers",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
         "inputs": [],
         "name": "renounceOwnership",
         "outputs": [],
@@ -509,11 +455,6 @@
                 "internalType": "bytes32",
                 "name": "_fundId",
                 "type": "bytes32"
-            },
-            {
-                "internalType": "uint8",
-                "name": "_reputationTaken",
-                "type": "uint8"
             }
         ],
         "name": "retractDonation",
@@ -543,7 +484,7 @@
             },
             {
                 "internalType": "address payable",
-                "name": "receiver",
+                "name": "_receiver",
                 "type": "address"
             }
         ],

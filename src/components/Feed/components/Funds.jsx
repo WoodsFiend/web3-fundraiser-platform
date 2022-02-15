@@ -1,6 +1,6 @@
 import { useMoralisDapp } from "providers/MoralisDappProvider/MoralisDappProvider";
 import { useMoralisQuery } from "react-moralis";
-import Fund from "./Fund"
+import Fund from "./Fund";
 
 const Funds = () => {
     const { selectedCategory } = useMoralisDapp();

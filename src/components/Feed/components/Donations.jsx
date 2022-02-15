@@ -9,8 +9,8 @@ const Donations = ({fundId}) => {
     const { contractABI, contractAddress} = useMoralisDapp();
     const contractABIJson = JSON.parse(contractABI)
     
-    const { donated } = useMoralisQuery("Donations", (query) => query.equalTo("fundId", fundId), [], { live: true });
-    const { retracted } = useMoralisQuery("RetractedDonations", (query) => query.equalTo("fundId", fundId), [], { live: true });
+    const { data: donated } = useMoralisQuery("Donations", (query) => query.equalTo("fundId", fundId), [], { live: true });
+    const { data: retracted } = useMoralisQuery("RetractedDonations", (query) => query.equalTo("fundId", fundId), [], { live: true });
 
     const options = {
         contractAddress: contractAddress,

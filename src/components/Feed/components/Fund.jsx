@@ -14,8 +14,10 @@ const Fund = ({fund}) => {
     const { contentId, fundId, fundOwner, receivers } = fund;
     const [fundContent, setPosContent] = useState({ title: "default", content: "default" });
     const { data } = useMoralisQuery("Contents", (query) => query.equalTo("contentId", contentId));
-    const [donationStatus, setDonationStatus] = useState();
-    const { data: donations } = useMoralisQuery("Donations", (query) => query.equalTo("fundId", fundId), [], {
+    const [activeFund, setFundActive] = useState();
+    const [endDate, setFundEndDate] = useState();
+
+    const { data: isActive } = useMoralisQuery("FundsEnded", (query) => query.equalTo("fundId", fundId), [], {
         live: true,
     });
     
@@ -47,18 +49,18 @@ const Fund = ({fund}) => {
       }, [data]);
     
     useEffect(() => {
-        if (!donations?.length) return null;
-
-        async function getFundAmountStatus() {
-            const fetchedDonations = JSON.parse(JSON.stringify(donations));
-            fetchedDonations.forEach(({ donater, up }) => {
-            if (donater === walletAddress) setDonationStatus(up ? "donated" : "retracted");
-            });
+        async function getFundActive() {
+            const fundActive = JSON.parse(JSON.stringify(isActive));
+            setFundActive(fundActive?.length === 0);
+            if(fundActive?.length > 0){
+                setFundEndDate(new Date(fundActive[0]["createdAt"]).toDateString());
+                console.log(endDate);
+            }
             return;
         }
 
-        getFundAmountStatus();
-    }, [donations, walletAddress]);
+        getFundActive();
+    }, [isActive, walletAddress]);
     
 
     async function Donate(amount){
@@ -70,7 +72,6 @@ const Fund = ({fund}) => {
             msgValue: Moralis.Units.ETH(amount),
             params: {
               _fundId: fund["fundId"],
-              _reputationAdded: 1,
             },
           };
           await contractProcessor.fetch({
@@ -105,7 +106,7 @@ const Fund = ({fund}) => {
             params: {
               _fundId: fund["fundId"],
               //Add _ with new contract
-              receiver: walletAddress
+              _receiver: walletAddress
             },
           };
           await contractProcessor.fetch({
@@ -163,6 +164,7 @@ const Fund = ({fund}) => {
     
     const donateForm = () => {
         //should not display if the fund has ended
+        if(activeFund){
             return (
             <Tooltip title="Donate to the fundraiser">
                 <span style={{ fontSize: "15px", display: "flex", alignItems: "center" }}>      
@@ -184,10 +186,19 @@ const Fund = ({fund}) => {
                 </span>
             </Tooltip>
             );
+        }
+        else {
+            return(
+                <span style={{ fontSize: "15px", display:"flex", width: "100%", float:"left", marginRight:"100px" }}> 
+                    This fundraiser ended on {endDate}
+                </span>
+            );
+        }
     }
 
     const retractDonationsButton = () => {
         //should not display if the fund has ended
+        if(activeFund){
             return (
                 <Tooltip title="Retract all donations given">
                     <span style={{ fontSize: "15px", display: "list-item", alignItems: "center", marginLeft:"320px", marginTop:"20px" }}>
@@ -196,10 +207,11 @@ const Fund = ({fund}) => {
                     </span>
                 </Tooltip>
             );
+        }
     }
     const fundOwnerCapabilites = () => {
         //should not display if the fund has ended
-        if(walletAddress === fundOwner){
+        if(activeFund && walletAddress === fundOwner){
             return (
                 <Tooltip title="End the fundraiser and allow receivers to start withdrawing.">
                     <span style={{marginTop:"0px", marginLeft:"-12px", float:"left" }}>
@@ -208,19 +220,17 @@ const Fund = ({fund}) => {
                 </Tooltip>
             );
         }
-        else return null;
     }
 
     const receiverCapabilites = () => {
-        //should not display if the fund has ended
-        if(receivers.find(r => r.toLowerCase() === walletAddress.toLowerCase())){
+        //should not display if the fund is active
+        if(!activeFund && receivers.find(r => r.toLowerCase() === walletAddress.toLowerCase())){
             return (
                 <Tooltip title="Withdraw the donations given to you.">
                     <button className="btn btn-dark " style={{float:"right", marginTop:"10px"}} onClick={() => withrawFunding()}>Withdraw Donated Funds</button>
                 </Tooltip>
             );
         }
-        else return null;
     }
 
     const actions = [
