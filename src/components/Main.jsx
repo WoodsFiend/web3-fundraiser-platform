@@ -1,12 +1,12 @@
 import { useMoralisQuery } from "react-moralis";
 import Categories from "./Categories"
 import Feed from "./Feed";
+import queryString from 'query-string';
 
 const Main = () => {
     const queryCategories = useMoralisQuery("Categories");
     const fetchedCategories = JSON.parse(JSON.stringify(queryCategories.data, ["categoryId", "category"]));
-
-    console.log(fetchedCategories)
+    
     return (
         <div className="container">
             <div style={{

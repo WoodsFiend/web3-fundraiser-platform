@@ -2,6 +2,9 @@ import { useMoralisDapp } from "providers/MoralisDappProvider/MoralisDappProvide
 import { useMoralis, useMoralisQuery, useWeb3ExecuteFunction } from "react-moralis";
 import { useEffect, useState, createElement } from "react";
 import { Comment, Tooltip, Avatar, message, Divider } from "antd";
+import { LinkOutlined } from "@ant-design/icons";
+import {CopyToClipboard} from 'react-copy-to-clipboard';
+
 import Text from "antd/lib/typography/Text";
 import Blockie from "components/Blockie";
 import glStyles from "components/gstyles";
@@ -76,7 +79,7 @@ const Fund = ({fund}) => {
           };
           await contractProcessor.fetch({
             params: options,
-            onSuccess: () => console.log("success"),
+            onSuccess: () => message.success("Your donation has been received."),
             onError: (error) => console.error(error),
           });
     }
@@ -93,7 +96,7 @@ const Fund = ({fund}) => {
           };
           await contractProcessor.fetch({
             params: options,
-            onSuccess: () => console.log("success"),
+            onSuccess: () => message.success("The donation was succesfully ended"),
             onError: (error) => console.error(error),
           });
     }
@@ -113,6 +116,7 @@ const Fund = ({fund}) => {
             params: options,
             onSuccess: () => {
                 console.log("success");
+                message.success("Your earned donations have been succesfully withdrawn")
                 clearForm();
             },
             onError: (error) => console.error(error),
@@ -133,14 +137,11 @@ const Fund = ({fund}) => {
           };
           await contractProcessor.fetch({
             params: options,
-            onSuccess: () => console.log("success"),
+            onSuccess: () => message.success("Your given donations have been succesfully retracted"),
             onError: (error) => console.error(error),
           });
     }
-    const validateForm = () => {
-        let result = !donationAmount ? false: true;
-        return result
-    }
+
     const validateAmount = () => {
         let result = donationAmount > 0 ? true: false;
         return result
@@ -152,9 +153,6 @@ const Fund = ({fund}) => {
     
     function onSubmit(e){
         e.preventDefault();
-        if(!validateForm()){
-            return message.error("Remember to add the title, the content, and the receivers of your fundraisers")
-        }
         if(!validateAmount()){
             return message.error("You cannot donate nothing to the fundraiser.")
         }
@@ -275,7 +273,15 @@ const Fund = ({fund}) => {
             <Text strong style={{ fontSize: "20px", color: "#333" }}>
                 {fundContent["title"]}
             </Text>
-            <p style={{ fontSize: "15px", color: "#111" }}>{fundContent["content"]}</p>
+            <CopyToClipboard text={window.location.origin + window.location.pathname + "?categoryId=" + selectedCategory["categoryId"] + "&fundId=" + fundId}
+            onCopy={() => message.success("Copied to Clipboard")}
+            >
+                <button
+                style={{ fontSize: "15px", alignItems: "center", marginLeft: "16px" }}>
+                {createElement(LinkOutlined)} Copy Link
+                </button>      
+            </CopyToClipboard>
+            <p style={{ fontSize: "15px", color: "#111", marginTop:"10px"}}>{fundContent["content"]}</p>
             <Divider style={{ margin: "15px 0" }} />
             </>
         }
