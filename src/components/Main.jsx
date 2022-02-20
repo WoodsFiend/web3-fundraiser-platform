@@ -1,7 +1,6 @@
 import { useMoralisQuery } from "react-moralis";
 import Categories from "./Categories"
 import Feed from "./Feed";
-import queryString from 'query-string';
 
 const Main = () => {
     const queryCategories = useMoralisQuery("Categories");

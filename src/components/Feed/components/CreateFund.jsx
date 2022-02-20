@@ -24,7 +24,7 @@ const CreateFund = () => {
                 _parentId: "0x91",
                 _contentUri: contentUri,
                 _categoryId: categoryId,
-                _receivers: receivers.split(" ")
+                _receivers: receivers.split("\n")
             },
             }
         await contractProcessor.fetch({params:options,
@@ -44,18 +44,15 @@ const CreateFund = () => {
 
     const validateForm = () => {
         let result = !title || !content || !receivers ? false: true;
-        if(receivers.includes(",")){
-            result = false;
-        }
         return result
     }
 
     const validateReceivers = () => {
-        let spChars = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]+/;
+        let spChars = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>\/?\ ]+/;
         if(spChars.test(receivers)){
             return false;
         }
-        let theReceivers = receivers.split(" ");
+        let theReceivers = receivers.split("\n");
         theReceivers.forEach(receiver => {
             if(spChars.test(receiver)){
                 return false;
@@ -76,7 +73,7 @@ const CreateFund = () => {
             return message.error("Remember to add the title, content, and receivers of your fundraiser.");
         }
         if(!validateReceivers()){
-            return message.error("Receiver addresses must be separated by a space.");
+            return message.error("Receiver addresses must be separated by a new line.");
         }
         createFund({title, content})
         clearForm();
@@ -106,7 +103,7 @@ const CreateFund = () => {
                 <textarea
                 type='text'
                 className="mb-2 form-control"
-                placeholder="Fundraiser Receivers (addresses separated by spaces)"
+                placeholder="Fundraiser Receivers (addresses separated by new line)"
                 rows="5"
                 value={receivers}
                 onChange={(e) => setReceivers(e.target.value)}
