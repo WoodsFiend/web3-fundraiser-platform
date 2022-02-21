@@ -28,7 +28,7 @@ const Fund = ({fund}) => {
     const contractABIJson = JSON.parse(contractABI);
     const contractProcessor = useWeb3ExecuteFunction();
     const [donationAmount, setDonation] = useState("");
-
+    const [userDonations, setUserDonations] = useState(0);
 
     useEffect(() => {
         function extractUri(data) {
@@ -64,6 +64,24 @@ const Fund = ({fund}) => {
 
         getFundActive();
     }, [isActive, walletAddress]);
+
+    useEffect(()=>{
+        const options = {
+            contractAddress: contractAddress,
+            functionName: "getFund",
+            abi: contractABIJson,
+            params: {
+              _fundId: fundId,
+              _account: walletAddress
+            }
+          };
+        async function getUserDonations() {
+            await Moralis.enableWeb3;
+            const result = await Moralis.executeFunction(options);
+            setUserDonations(result / 1e18);
+        }
+        getUserDonations();
+    },[]);
     
 
     async function Donate(amount){
@@ -196,7 +214,7 @@ const Fund = ({fund}) => {
 
     const retractDonationsButton = () => {
         //should not display if the fund has ended
-        if(activeFund){
+        if(activeFund && userDonations > 0){
             return (
                 <Tooltip title="Retract all donations given">
                     <span style={{ fontSize: "15px", display: "list-item", alignItems: "center", marginLeft:"320px", marginTop:"20px" }}>
@@ -212,7 +230,7 @@ const Fund = ({fund}) => {
         if(activeFund && walletAddress === fundOwner){
             return (
                 <Tooltip title="End the fundraiser and allow receivers to start withdrawing.">
-                    <span style={{marginTop:"0px", marginLeft:"-12px", float:"left" }}>
+                    <span style={{marginTop:"0px", marginLeft:"12px", float:"left" }}>
                         <button className="btn btn-dark " style={{float:"right", marginTop:"10px"}} onClick={() => endFundraiser()}>End Fundraiser</button>
                     </span>
                 </Tooltip>
