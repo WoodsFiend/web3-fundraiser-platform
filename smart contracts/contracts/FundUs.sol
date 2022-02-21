@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -31,8 +31,9 @@ contract FundUs is Ownable {
     mapping (bytes32 => string) contentRegistry;
     mapping (bytes32 => Fund) FundRegistry;
 
-    uint256 ownerRewards;
-    
+    address payable rewardsAddress;
+    IERC20 public rewardsToken;
+
     function createFund(bytes32 _parentId, string calldata _contentUri, bytes32 _categoryId, address[] calldata _receivers) external {
         require(_receivers.length > 0, "The fund must have atleast one receiver");
         address _owner = msg.sender;
@@ -68,6 +69,8 @@ contract FundUs is Ownable {
         FundRegistry[_fundId].donatedAmounts[msg.sender] += msg.value;
         FundRegistry[_fundId].donations += msg.value;
         emit Donated(msg.value, _fundId, _contributor, _Donater, reputationRegistry[_contributor][_category], reputationRegistry[_Donater][_category], true, 1);
+        //Mint some reward tokens to this address depending on their donation amount
+        rewardsToken.mint(msg.sender, msg.value);
     }
 
     function retractDonation(address payable _receiver, bytes32 _fundId) external {
@@ -75,16 +78,23 @@ contract FundUs is Ownable {
         require(_receiver != address(0), "Cannot recover ETH to the 0 address");
         require(_receiver == msg.sender, "Cannot recover ETH to a different address");
         require(FundRegistry[_fundId].donatedAmounts[_receiver] > 0, "This address has not donated to this fund");
+        
+        uint256 amount = FundRegistry[_fundId].donatedAmounts[_receiver];
+        require(amount > 0, "No donations to retract");
+        
+        require(rewardsToken.balanceOf(msg.sender) >= amount, "This address does not have enough tokens to retract the donation");
+
+        rewardsToken.burnFrom(msg.sender, amount);
+
+        FundRegistry[_fundId].donatedAmounts[_receiver] = 0;
+        FundRegistry[_fundId].donations -= amount;
+  
         address _Donater = msg.sender;
         bytes32 _category = FundRegistry[_fundId].categoryId;
         address _contributor = FundRegistry[_fundId].fundOwner;
         uint8 _reputationTaken = FundRegistry[_fundId].repGiven[_receiver];
         reputationRegistry[_contributor][_category] -= _reputationTaken;   
         FundRegistry[_fundId].repGiven[_receiver] = 0;
-
-        uint256 amount = FundRegistry[_fundId].donatedAmounts[_receiver];
-        FundRegistry[_fundId].donatedAmounts[_receiver] = 0;
-        FundRegistry[_fundId].donations -= amount;
 
         _receiver.transfer(amount);
 
@@ -121,10 +131,16 @@ contract FundUs is Ownable {
             );
     }
 
+    function getDonations(bytes32 _fundId, address _account) public view returns(uint256){
+        return FundRegistry[_fundId].donatedAmounts[_account];
+    }
+
     function endFund(bytes32 _fundId) external {
         require(FundRegistry[_fundId].fundOwner == msg.sender, "Only the fund owner can end the fund");
         require(FundRegistry[_fundId].fundActive, "The fund has already ended");
-        ownerRewards += FundRegistry[_fundId].donations / 50;
+        //ownerRewards += FundRegistry[_fundId].donations / 50;
+        bool sent = rewardsAddress.send(FundRegistry[_fundId].donations / 50);
+        require(sent, "Failed to transfer rewards to staking");
         FundRegistry[_fundId].donations = (FundRegistry[_fundId].donations / 50) * 49;
         FundRegistry[_fundId].fundActive = false;
         address _owner = FundRegistry[_fundId].fundOwner;
@@ -139,13 +155,39 @@ contract FundUs is Ownable {
         require(_receiver != address(0), "Cannot recover ETH to the 0 address");
         require(!FundRegistry[_fundId].fundActive, "This fund is still active");
         require (FundRegistry[_fundId].receivers[_receiver] == true, "you cannot withdraw funds if you are not a receiver");
+        bool sent = _receiver.send(FundRegistry[_fundId].donations / FundRegistry[_fundId].totalReceivers);
+        require(sent, "Failed to withdraw tokens");
         FundRegistry[_fundId].receivers[_receiver] = false;
-        _receiver.transfer(FundRegistry[_fundId].donations / FundRegistry[_fundId].totalReceivers);
     }
 
-    function withdrawOwnerRewards(address payable receiver) external onlyOwner {
-        require(receiver != address(0), "Cannot recover ETH to the 0 address");
-        receiver.transfer(ownerRewards);
+    function setRewardsAddress(address payable _rewardsReceiver) external onlyOwner {
+        rewardsAddress = _rewardsReceiver;
     }
+    function setRewardToken(address _tokenAddress) external onlyOwner {
+        rewardsToken = IERC20(_tokenAddress);
+    }
+}
 
+interface IERC20 {
+    function totalSupply() external view returns (uint);
+
+    function balanceOf(address account) external view returns (uint);
+
+    function transfer(address recipient, uint amount) external returns (bool);
+
+    function allowance(address owner, address spender) external view returns (uint);
+
+    function approve(address spender, uint amount) external returns (bool);
+
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint amount
+    ) external returns (bool);
+
+    function mint(address _receiver, uint256 amount) external;
+    function burn(uint256 amount) external;
+    function burnFrom(address account, uint256 amount) external;
+    event Transfer(address indexed from, address indexed to, uint value);
+    event Approval(address indexed owner, address indexed spender, uint value);
 }
